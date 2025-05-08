@@ -1,0 +1,61 @@
+Sub CombinePDFsUsingPDFTKWithFolderAndOutputSelection()
+    Dim FileName As String
+    Dim FilePath As String
+    Dim FolderPath As String
+    Dim CombinedPDFPath As String
+    Dim PDFList As String
+    Dim LastRow As Long
+    Dim i As Integer
+    Dim ShellCommand As String
+    Dim FileDialog As FileDialog
+
+    ' Step 1: Open a folder picker dialog to select the folder containing PDFs
+    Set FileDialog = Application.FileDialog(msoFileDialogFolderPicker)
+    FileDialog.Title = "Select Folder Containing PDF Files"
+    If FileDialog.Show = -1 Then
+        FolderPath = FileDialog.SelectedItems(1) & "\"
+    Else
+        MsgBox "No folder selected. Exiting.", vbExclamation
+        Exit Sub
+    End If
+
+    ' Step 2: Open a file save dialog to select output location and name
+    Set FileDialog = Application.FileDialog(msoFileDialogSaveAs)
+    FileDialog.Title = "Select Location and Name for Combined PDF"
+    FileDialog.FilterIndex = 2 ' Set the file type to PDF
+    FileDialog.InitialFileName = FolderPath & "Combined.pdf" ' Default name
+    If FileDialog.Show = -1 Then
+        CombinedPDFPath = FileDialog.SelectedItems(1)
+        If Right(CombinedPDFPath, 4) <> ".pdf" Then
+            CombinedPDFPath = CombinedPDFPath & ".pdf"
+        End If
+    Else
+        MsgBox "No output file selected. Exiting.", vbExclamation
+        Exit Sub
+    End If
+
+    ' Step 3: Get the last row in column A
+    LastRow = Cells(Rows.Count, 1).End(xlUp).Row
+
+    ' Step 4: Build the list of PDF files
+    PDFList = ""
+    For i = 1 To LastRow
+        FileName = Cells(i, 1).Value
+        FilePath = FolderPath & FileName & ".pdf" ' Combine folder path and file name
+        If Dir(FilePath) <> "" Then
+            PDFList = PDFList & " """ & FilePath & """"
+        Else
+            MsgBox "File not found: " & FilePath, vbExclamation
+            Exit Sub
+        End If
+    Next i
+
+    ' Step 5: Build the PDFTK command
+    ShellCommand = "pdftk" & PDFList & " cat output """ & CombinedPDFPath & """"
+
+    ' Step 6: Run the command using Shell
+    Shell ShellCommand, vbNormalFocus
+
+    ' Step 7: Notify the user
+    MsgBox "Combined PDF saved successfully at: " & CombinedPDFPath, vbInformation
+End Sub
